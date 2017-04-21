@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 from __future__ import unicode_literals
 
 import copy
@@ -429,6 +430,24 @@ class BaseModelAdmin(six.with_metaclass(forms.MediaDefiningClass)):
 
         return False
 
+    def has_view_permission(self, request, obj=None):
+        "Returns True if the given request has permission to view an object."
+        opts = self.opts
+        if self.has_change_permission(request, obj): # Only require explicit view-permissions if no change-permissions
+            return True
+        perm = request.user.has_perm(opts.app_label + '.' + opts.get_view_permission())
+        return perm
+
+    def has_view_permission(self, request, obj=None):
+        "Returns True if the given request has permission to view an object."
+        opts = self.opts
+        # 如果有Change的Permission, 则也可以View
+        if self.has_change_permission(request, obj): # Only require explicit view-permissions if no change-permissions
+            return True
+        # 再次查询view permission
+        perm = request.user.has_perm(opts.app_label + '.' + opts.get_view_permission())
+        return perm
+
     def has_add_permission(self, request):
         """
         Returns True if the given request has permission to add an object.
@@ -593,6 +612,7 @@ class ModelAdmin(BaseModelAdmin):
         of those actions.
         """
         return {
+            'view': self.has_view_permission(request),
             'add': self.has_add_permission(request),
             'change': self.has_change_permission(request),
             'delete': self.has_delete_permission(request),
@@ -1011,6 +1031,7 @@ class ModelAdmin(BaseModelAdmin):
         context.update({
             'add': add,
             'change': change,
+            'has_view_permission': self.has_view_permission(request, obj),
             'has_add_permission': self.has_add_permission(request),
             'has_change_permission': self.has_change_permission(request, obj),
             'has_delete_permission': self.has_delete_permission(request, obj),
@@ -1518,7 +1539,7 @@ class ModelAdmin(BaseModelAdmin):
         from django.contrib.admin.views.main import ERROR_FLAG
         opts = self.model._meta
         app_label = opts.app_label
-        if not self.has_change_permission(request, None):
+        if not self.has_view_permission(request, None):
             raise PermissionDenied
 
         list_display = self.get_list_display(request)
@@ -1760,7 +1781,7 @@ class ModelAdmin(BaseModelAdmin):
         if obj is None:
             return self._get_obj_does_not_exist_redirect(request, model._meta, object_id)
 
-        if not self.has_change_permission(request, obj):
+        if not self.has_view_permission(request, obj):
             raise PermissionDenied
 
         # Then get the history for this object.

@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 import json
 
 from django import template
@@ -61,7 +62,7 @@ def submit_row(context):
             (not save_as or context['add'])
         ),
         'show_save_and_continue': not is_popup and context['has_change_permission'] and show_save_and_continue,
-        'show_save': show_save,
+        'show_save': show_save and context['has_change_permission'], # 必须有编辑权限
     })
     return ctx
 
